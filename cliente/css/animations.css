@@ -1,0 +1,113 @@
+/* ══════════════════════════════
+   ANIMATIONS
+══════════════════════════════ */
+
+/* ── Entrada de mensajes ── */
+@keyframes msgSlideRight{
+  from{opacity:0;transform:translateX(16px) scale(0.96);}
+  to{opacity:1;transform:translateX(0) scale(1);}
+}
+
+@keyframes msgSlideLeft{
+  from{opacity:0;transform:translateX(-16px) scale(0.96);}
+  to{opacity:1;transform:translateX(0) scale(1);}
+}
+
+.mensaje-wrapper-mio .mensaje-item{
+  animation:msgSlideRight 0.22s var(--ease);
+  transform-origin:right center;
+}
+
+.mensaje-wrapper-otro .mensaje-item{
+  animation:msgSlideLeft 0.22s var(--ease);
+  transform-origin:left center;
+}
+
+/* ── Entrada del modal ── */
+@keyframes modalIn{
+  from{opacity:0;transform:scale(0.94) translateY(12px);}
+  to{opacity:1;transform:scale(1) translateY(0);}
+}
+.modal-contenido{animation:modalIn 0.28s var(--ease);}
+
+/* ── Entrada del sidebar (mobile) ── */
+@keyframes fadeIn{
+  from{opacity:0;}
+  to{opacity:1;}
+}
+
+/* ── Glow pulse del botón enviar ── */
+@keyframes glowPulse{
+  0%,100%{box-shadow:0 2px 8px rgba(78,110,245,0.40);}
+  50%{box-shadow:0 0 24px rgba(78,110,245,0.70);}
+}
+.btn-send:focus-visible{animation:glowPulse 1.5s ease-in-out infinite;}
+
+/* ── Highlight de mensaje nuevo ── */
+@keyframes msgHighlight{
+  0%{background-color:rgba(78,110,245,0.18);}
+  100%{background-color:transparent;}
+}
+.mensaje-nuevo{animation:msgHighlight 0.6s var(--ease);}
+
+/* ── Escala de rebote en enviar ── */
+@keyframes formBounce{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(0.985);}
+}
+.form-sending{animation:formBounce 0.15s var(--ease);}
+
+/* ── Botones generales ── */
+button{
+  transition:transform var(--duration) var(--ease),
+             background var(--duration) var(--ease),
+             box-shadow var(--duration) var(--ease),
+             color var(--duration) var(--ease),
+             border-color var(--duration) var(--ease);
+}
+button:active:not(:disabled){transform:scale(0.96);}
+
+/* ── Hover en items de lista ── */
+.user-item,.chat-item{
+  transition:background var(--duration) var(--ease);
+}
+
+/* ── Fade logo ── */
+@keyframes logoGlow{
+  0%,100%{box-shadow:0 0 12px var(--accent-glow);}
+  50%{box-shadow:0 0 28px var(--accent-glow);}
+}
+.logo-icon{animation:logoGlow 3s ease-in-out infinite;}
+
+/* ── Entrada de pantalla ── */
+@keyframes screenIn{
+  from{opacity:0;transform:translateY(6px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.chat-container{animation:screenIn 0.35s var(--ease);}
+
+/* ── Reduce motion ── */
+@media(prefers-reduced-motion: reduce){
+  *{animation:none !important;transition-duration:0.01ms !important;}
+}
+
+/* ── Campana Notificaion logo ── */
+.user-item {
+  position: relative;
+}
+
+.notif {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  font-size: 14px;
+  animation: pulseNotif 1s infinite;
+}
+
+@keyframes pulseNotif {
+  0% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.2); }
+  100% { transform: translateY(-50%) scale(1); }
+}

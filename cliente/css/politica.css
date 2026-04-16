@@ -1,0 +1,135 @@
+/* =========================
+   ESTADO OCULTO GLOBAL
+========================= */
+.hidden {
+  display: none !important;
+}
+
+/* =========================
+   CONTENEDOR GENERAL
+========================= */
+#politicaView {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* SOLO se muestra cuando NO tiene .hidden */
+#politicaView:not(.hidden) {
+  display: flex;
+}
+
+/* =========================
+   CARD / MODAL
+========================= */
+#politicaView .modal-contenido {
+  width: 100%;
+  max-width: 700px;
+  max-height: 85vh;
+
+  background: #0f172a;
+  color: #e5e7eb;
+
+  border-radius: 16px;
+  padding: 25px;
+
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* =========================
+   BOTÓN VOLVER
+========================= */
+#politicaView button {
+  background: transparent;
+  border: none;
+  color: #93c5fd;
+
+  font-size: 14px;
+  cursor: pointer;
+
+  margin-bottom: 10px;
+}
+
+#politicaView button:hover {
+  color: #60a5fa;
+}
+
+/* =========================
+   TÍTULO
+========================= */
+#politicaView h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+/* =========================
+   FECHA
+========================= */
+#politicaView p:first-of-type {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 20px;
+}
+
+/* =========================
+   SECCIONES
+========================= */
+#politicaView h4 {
+  margin-top: 18px;
+  margin-bottom: 6px;
+
+  font-size: 15px;
+  color: #60a5fa;
+}
+
+#politicaView p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #d1d5db;
+}
+
+/* =========================
+   SCROLL PERSONALIZADO
+========================= */
+#politicaView .modal-contenido::-webkit-scrollbar {
+  width: 6px;
+}
+
+#politicaView .modal-contenido::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 10px;
+}
+
+/* =========================
+   ANIMACIÓN SUAVE
+========================= */
+#politicaView {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+#politicaView:not(.hidden) {
+  opacity: 1;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 600px) {
+  #politicaView .modal-contenido {
+    padding: 18px;
+    border-radius: 12px;
+  }
+
+  #politicaView h2 {
+    font-size: 18px;
+  }
+
+  #politicaView p {
+    font-size: 13px;
+  }
+}
