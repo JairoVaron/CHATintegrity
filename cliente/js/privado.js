@@ -1,15 +1,24 @@
+// archivo privado.js
+
 import { getUsuariosGlobal } from "./usuarios.js";
 import { setModo } from "./estado.js";
 
+// IMPORT RECICLAJE
+import {
+    getColorFromName,
+    obtenerHora,
+    crearBurbuja,
+    crearHora,
+    crearEstado
+} from "./reciclaje.js";
+
 let chatActivoSocketId = null;
 let chatActivoUserId = null;
-
-// chats guardados por socketId
 let chats = JSON.parse(localStorage.getItem("chats")) || {};
-
-// notificaciones
 let tituloOriginal = document.title;
 let notificaciones = {};
+let ultimoRemitente = null;
+let ultimoGrupo = null;
 
 // sonido
 const sonido = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
@@ -17,52 +26,52 @@ sonido.volume = 1;
 
 
 // =========================
-// COLOR PARA USUARIOS
-// =========================
-function getColorFromName(nombre) {
-    let hash = 0;
-
-    for (let i = 0; i < nombre.length; i++) {
-        hash = nombre.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    const colores = [
-        "#3b82f6",
-        "#10b981",
-        "#f59e0b",
-        "#ef4444",
-        "#8b5cf6",
-        "#ec4899",
-        "#06b6d4",
-        "#22c55e"
-    ];
-
-    return colores[Math.abs(hash) % colores.length];
-}
-
-
-// =========================
 // CHAT PRIVADO
 // =========================
 export function initPrivado(socket) {
+
+    let typingTimer;
+    let typingTimeout;
+    let audioHabilitado = false;
 
     const listaUsuarios = document.getElementById("listaUsuarios");
     const form = document.getElementById("formChat");
     const input = document.getElementById("inputMensaje");
     const header = document.getElementById("chatHeader");
     const btnGlobal = document.getElementById("btnGlobal");
+    const contenedorScroll = document.querySelector(".mensajes-container");
+
 
     window.addEventListener("focus", () => {
         document.title = tituloOriginal;
     });
 
+    // =========================
+    // ESCRIBIENDO MENSAJE
+    // =========================   
+    input.addEventListener("input", () => {
+
+        if (!chatActivoSocketId) return;
+
+        console.log("Escribiendo privado..."); 
+
+        socket.emit("escribiendo_privado", {
+            to: chatActivoSocketId
+        });
+
+        clearTimeout(typingTimeout);
+
+        typingTimeout = setTimeout(() => {
+            socket.emit("dejo_escribir_privado", {
+                to: chatActivoSocketId
+            });
+        }, 1000);
+    });
 
 
     // =========================
     // SONIDO NOTIFICACION
     // =========================
-    let audioHabilitado = false;
-
     document.addEventListener("click", () => {
         if (!audioHabilitado) {
             sonido.play()
@@ -81,20 +90,15 @@ export function initPrivado(socket) {
     // VOLVIENDO AL CHAT GLOBAL
     // =========================
     btnGlobal.addEventListener("click", () => {
+        console.log("VOLVIENDO A CHAT GLOBAL");
 
-        console.log("🌍 VOLVIENDO A CHAT GLOBAL");
-
-        // resetear chat privado
         chatActivoSocketId = null;
         chatActivoUserId = null;
 
-        // cambiar modo
         setModo("global");
 
-        // cambiar título
         header.textContent = "Chat Global";
 
-        // limpiar mensajes (el global los vuelve a pintar)
         document.getElementById("listaMensajes").innerHTML = "";
     });
 
@@ -103,41 +107,43 @@ export function initPrivado(socket) {
     // CLICK USUARIO → ABRIR CHAT
     // =========================
     listaUsuarios.addEventListener("click", (e) => {
-
         const li = e.target.closest("li");
         if (!li) return;
 
         const socketId = li.dataset.id;
         const userId = li.dataset.userid;
 
-        if (!socketId) {
-            console.log("❌ socketId vacío");
-            return;
-        }
+        if (!socketId) return;
 
         chatActivoSocketId = socketId;
         chatActivoUserId = userId;
 
-        // ❌ quitar notificación al abrir
+        socket.emit("mensajes_leidos", {
+            from: socket.id,
+            to: socketId
+        });
+
+        if (chats[socketId]) {
+            chats[socketId].forEach(msg => {
+                if (msg.propio) msg.estado = "leido";
+            });
+        }
+
         delete notificaciones[socketId];
         actualizarNotificacionesUI();
 
         setModo("privado");
 
-        // 🔥 mostrar nombre en header
         const usuarios = getUsuariosGlobal();
         const user = usuarios.find(u => u.socketId === socketId);
 
         header.textContent = user?.nombre || "Chat privado";
 
-        // crear chat si no existe
         if (!chats[socketId]) {
             chats[socketId] = [];
         }
 
         render(socketId);
-
-        console.log("✅ CHAT ABIERTO CON:", socketId, userId);
     });
 
 
@@ -147,15 +153,10 @@ export function initPrivado(socket) {
     form.addEventListener("submit", (e) => {
         e.preventDefault();
 
-        if (!chatActivoSocketId) {
-            console.log("❌ No hay chat activo");
-            return;
-        }
+        if (!chatActivoSocketId) return;
 
         const mensaje = input.value.trim();
         if (!mensaje) return;
-
-        console.log("📤 ENVIANDO A:", chatActivoSocketId);
 
         socket.emit("mensaje_privado", {
             toSocketId: chatActivoSocketId,
@@ -163,6 +164,13 @@ export function initPrivado(socket) {
         });
 
         input.value = "";
+
+        requestAnimationFrame(() => {
+            contenedorScroll.scrollTo({
+                top: contenedorScroll.scrollHeight,
+                behavior: "smooth"
+            });
+        });
     });
 
 
@@ -182,27 +190,22 @@ export function initPrivado(socket) {
         chats[socketId].push({
             mensaje: data.mensaje,
             propio: data.propio,
-            nombre: data.from.nombre
+            nombre: data.from.nombre,
+            hora: obtenerHora(), 
+            estado: data.propio ? "enviado" : "leido"
         });
 
         save();
 
-        // 🔔 NOTIFICACIONES
         if (!data.propio) {
-
             const estasEnEseChat = socketId === chatActivoSocketId;
 
-            // SOLO si NO estás viendo ese chat
             if (!estasEnEseChat) {
-
-                // campanita en lista
                 notificaciones[socketId] = (notificaciones[socketId] || 0) + 1;
                 actualizarNotificacionesUI();
 
-                // título pestaña
                 document.title = `${data.from.nombre} te escribió 💬`;
 
-                // sonido
                 if (audioHabilitado) {
                     sonido.currentTime = 0;
                     sonido.play().catch(() => {});
@@ -210,10 +213,16 @@ export function initPrivado(socket) {
             }
         }
 
-
-        // render solo si estás en ese chat
         if (socketId === chatActivoSocketId) {
+
             render(socketId);
+
+            if (!data.propio) {
+                socket.emit("mensajes_leidos", {
+                    from: socket.id,
+                    to: socketId
+                });
+            }
         }
     });
 
@@ -226,80 +235,95 @@ export function initPrivado(socket) {
         const lista = document.getElementById("listaMensajes");
         lista.innerHTML = "";
 
+        ultimoRemitente = null;
+        ultimoGrupo = null;
+
         (chats[socketId] || []).forEach(msg => {
 
-            const wrap = document.createElement("div");
-
-            wrap.classList.add(
-                "mensaje-wrapper",
-                msg.propio ? "mensaje-wrapper-mio" : "mensaje-wrapper-otro"
-            );
-
-            // 🔥 CONTENEDOR
-            const mensajeBox = document.createElement("div");
-            mensajeBox.classList.add("mensaje");
-
             const nombre = msg.propio ? "Tú" : msg.nombre;
+            const esMismoUsuario = nombre === ultimoRemitente;
 
-            mensajeBox.dataset.letter = nombre ? nombre[0].toUpperCase() : "U";
+            let wrap;
 
-            // 🔥 AVATAR SOLO SI NO ES TUYO
-            if (!msg.propio) {
-                const avatar = document.createElement("div");
-                avatar.classList.add("mensaje-avatar");
+            if (esMismoUsuario && ultimoGrupo) {
+                wrap = ultimoGrupo;
+            } else {
 
-                // 🔥 COLOR ÚNICO
-                avatar.style.background = getColorFromName(nombre);
+                wrap = document.createElement("div");
 
-                mensajeBox.appendChild(avatar);
+                wrap.classList.add(
+                    "mensaje-wrapper",
+                    msg.propio ? "mensaje-wrapper-mio" : "mensaje-wrapper-otro"
+                );
+
+                const mensajeBox = document.createElement("div");
+                mensajeBox.classList.add("mensaje");
+
+                mensajeBox.dataset.letter = nombre ? nombre[0].toUpperCase() : "U";
+
+                if (!msg.propio) {
+                    const avatar = document.createElement("div");
+                    avatar.classList.add("mensaje-avatar");
+                    avatar.style.background = getColorFromName(nombre);
+                    mensajeBox.appendChild(avatar);
+                }
+
+                const contenido = document.createElement("div");
+                contenido.classList.add("mensaje-contenido");
+
+                const autor = document.createElement("div");
+                autor.classList.add("mensaje-autor");
+                autor.textContent = nombre;
+
+                contenido.appendChild(autor);
+
+                mensajeBox.appendChild(contenido);
+                wrap.appendChild(mensajeBox);
+
+                lista.appendChild(wrap);
+
+                ultimoGrupo = wrap;
+                ultimoRemitente = nombre;
             }
 
-            // 🔥 CONTENIDO
-            const contenido = document.createElement("div");
-            contenido.classList.add("mensaje-contenido");
+            const contenido = wrap.querySelector(".mensaje-contenido");
 
-            const autor = document.createElement("div");
-            autor.classList.add("mensaje-autor");
-            autor.textContent = nombre;
+            const burbuja = crearBurbuja({
+                mensaje: msg.mensaje,
+                propio: msg.propio
+            });
 
-            const burbuja = document.createElement("div");
-            burbuja.classList.add(
-                "mensaje-item",
-                msg.propio ? "mensaje-mio" : "mensaje-otro"
-            );
-
-            burbuja.textContent = msg.mensaje;
-
-            contenido.appendChild(autor);
             contenido.appendChild(burbuja);
 
-            mensajeBox.appendChild(contenido);
-            wrap.appendChild(mensajeBox);
+            contenido.appendChild(crearHora(msg.hora));
 
-            lista.appendChild(wrap);
+            if (msg.propio) {
+                contenido.appendChild(crearEstado(msg.estado));
+            }
         });
 
-        lista.scrollTop = lista.scrollHeight;
+        requestAnimationFrame(() => {
+            contenedorScroll.scrollTo({
+                top: contenedorScroll.scrollHeight,
+                behavior: "smooth"
+            });
+        });
     }
 
 
     // =========================
-    // ENVIAR MENSAJE
+    // NOTIFICACIONES UI
     // =========================
     function actualizarNotificacionesUI() {
-
         const items = document.querySelectorAll("#listaUsuarios li");
 
         items.forEach(li => {
 
             const socketId = li.dataset.id;
-
-            // eliminar si ya existe
             let badge = li.querySelector(".notif");
 
             if (badge) badge.remove();
 
-            // si hay notificación → crear
             if (notificaciones[socketId]) {
 
                 const notif = document.createElement("span");
@@ -318,9 +342,68 @@ export function initPrivado(socket) {
 
 
     // =========================
+    // MENSAJES LEIDOS
+    // =========================
+    socket.on("mensajes_leidos", ({ from }) => {
+
+        const socketId = from;
+
+        if (chats[socketId]) {
+
+            chats[socketId].forEach(msg => {
+                if (msg.propio) msg.estado = "leido";
+            });
+
+            save();
+
+            if (socketId === chatActivoSocketId) {
+                render(socketId);
+            }
+        }
+    });
+
+
+    // =========================
+    // ESCRIBIENDO
+    // =========================
+    socket.on("escribiendo_privado", (data) => {
+
+        console.log("Privado:", data); 
+
+        if (data.from.socketId !== chatActivoSocketId) return;
+
+        header.textContent = `${data.from.nombre} está escribiendo...`;
+
+        clearTimeout(typingTimer);
+
+        typingTimer = setTimeout(() => {
+            actualizarHeaderNormal(header);
+        }, 1500);
+    });
+
+    socket.on("dejo_escribir_privado", (data) => {
+
+        if (data.from !== chatActivoSocketId) return;
+
+        actualizarHeaderNormal(header);
+    });
+
+
+    // =========================
     // GUARDAR
     // =========================
     function save() {
         localStorage.setItem("chats", JSON.stringify(chats));
     }
+}
+
+
+// =========================
+// HEADER NORMAL
+// =========================
+function actualizarHeaderNormal(header) {
+    const usuarios = getUsuariosGlobal();
+    const user = usuarios.find(u => u.socketId === chatActivoSocketId);
+
+    header.textContent = user?.nombre || "Chat privado";
 }

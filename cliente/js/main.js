@@ -21,9 +21,9 @@ import "./animaciones.js";
 const socket = io();
 
 if (!socket) {
-  console.error("❌ Socket no inicializado");
+  console.error("Socket no inicializado");
 } else {
-  console.log("✅ SOCKET:", socket);
+  console.log("SOCKET:", socket);
 }
 
 // =========================
@@ -38,7 +38,7 @@ socket.on("lista_usuarios", (usuarios) => {
     setUsuariosGlobal(usuarios);
     renderUsuarios(usuarios);
   } catch (error) {
-    console.error("❌ Error renderizando usuarios:", error);
+    console.error("Error renderizando usuarios:", error);
   }
 });
 
@@ -53,8 +53,8 @@ document.addEventListener("DOMContentLoaded", () => {
     initMedia(socket);
     initPrivado(socket);
 
-    console.log("🚀 MAIN OK");
+    console.log("MAIN OK");
   } catch (error) {
-    console.error("❌ Error inicializando app:", error);
+    console.error("Error inicializando app:", error);
   }
 });

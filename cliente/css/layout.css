@@ -143,6 +143,7 @@
   flex-direction:column;
   overflow:hidden;
   background:transparent;
+  min-height: 0;
 }
 
 /* ── Chat header ── */

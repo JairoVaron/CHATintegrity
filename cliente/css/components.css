@@ -137,7 +137,7 @@
 
 .lista-mensajes{
   display:flex;
-  flex-direction:column-reverse;
+  flex-direction:column; 
   gap:6px;
 }
 
@@ -150,12 +150,18 @@
 
 /* ── Wrapper ── */
 .mensaje-wrapper{
-  display:flex;
-  flex-direction:column;
-  max-width:68%;
+  max-width: 68%;
+  width: 100%;
 }
-.mensaje-wrapper-mio{align-self:flex-end; align-items:flex-end;}
-.mensaje-wrapper-otro{align-self:flex-start; align-items:flex-start;}
+.mensaje-wrapper-mio{
+  align-self: flex-end;
+  align-items: flex-start;  
+}
+
+.mensaje-wrapper-otro{
+  align-self:flex-start; 
+  align-items:flex-start;
+}
 
 /* ── Meta (avatar + nombre) ── */
 .msg-meta{
@@ -177,12 +183,12 @@
 
 /* ── Burbuja ── */
 .mensaje-item{
-  padding:9px 13px;
-  border-radius:var(--radius-lg);
-  font-size:14.5px;
-  line-height:1.5;
-  word-break:break-word;
-  position:relative;
+  padding: 9px 13px;
+  border-radius: var(--radius-lg);
+  font-size: 14.5px;
+  line-height: 1.5;
+  max-width: 100%;  
+  word-break: break-word;   
 }
 
 .mensaje-mio{
@@ -197,6 +203,22 @@
   border:1px solid var(--border-subtle);
   color:var(--text-primary);
   border-bottom-left-radius:4px;
+}
+
+.mensaje-wrapper {
+    margin-bottom: 10px;
+}
+
+.mensaje-contenido{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 68%;
+  width: fit-content; 
+}
+
+.mensaje-wrapper-mio .mensaje-contenido{
+  align-items: flex-end;
 }
 
 /* Burbujas encadenadas */
@@ -521,7 +543,7 @@
 
 /* Bolita con inicial (con fallback "U") */
 .user-item::before{
-  content: attr(data-letter, "U"); /* 🔥 fallback si no hay data-letter */
+  content: attr(data-letter, "U"); 
   
   position: absolute;
   left: 6px;
@@ -543,7 +565,7 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
-/* 🎨 Colores "pseudo aleatorios" */
+/* Colores "pseudo aleatorios" */
 .user-item:nth-child(3n)::before{
   background: linear-gradient(135deg, #f59e0b, #ef4444);
 }
@@ -568,8 +590,22 @@
 .mensaje {
   display: flex;
   gap: 10px;
-  align-items: flex-end;
+  align-items: flex-start;
   margin: 6px 0;
+  max-width: 100%; 
+}
+
+.mensaje-hora {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-top: 2px;
+    text-align: right;
+}
+
+.mensaje-estado {
+    font-size: 11px;
+    opacity: 0.7;
+    text-align: right;
 }
 
 .mensaje-avatar {
@@ -589,7 +625,7 @@
   background: linear-gradient(135deg, #3b82f6, #06b6d4);
 }
 
-/* 🔥 letra automática */
+/* letra automática */
 .mensaje[data-letter] .mensaje-avatar::before {
   content: attr(data-letter);
 }
@@ -601,4 +637,18 @@
 
 .mensaje-wrapper-mio .mensaje-avatar {
   display: none;
+}
+
+
+/* ══════════════════════════════
+   FIX SCROLL CHAT
+══════════════════════════════ */
+#listaMensajes{
+  flex: 1;
+  min-height: 0; 
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px 8px;
 }

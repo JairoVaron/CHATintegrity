@@ -83,10 +83,10 @@ export function initAuth(socket) {
                 return;
             }
 
-            // 🔥 GUARDAR USUARIO GLOBAL
+            // GUARDAR USUARIO GLOBAL
             currentUser = data.user;
 
-            // 🔥 SOCKET AUTH
+            // SOCKET AUTH
             socket.emit("auth", currentUser);
 
             // ocultar login

@@ -1,36 +1,77 @@
+// archivo chat.js
+
 import { getUser } from "./auth.js";
 import { getModo } from "./estado.js";
+
+// IMPORT RECICLAJE
+import {
+    getColorFromName,
+    obtenerHora,
+    crearBurbuja,
+    crearHora
+} from "./reciclaje.js";
 
 const form = document.getElementById("formChat");
 const input = document.getElementById("inputMensaje");
 const lista = document.getElementById("listaMensajes");
+const contenedorScroll = document.querySelector(".mensajes-container");
+
+// AGRUPACIÓN GLOBAL
+let ultimoRemitenteGlobal = null;
+let ultimoGrupoGlobal = null;
 
 
 // =========================
-// COLOR PARA USUARIOS
+// INIT CHAT
 // =========================
-function getColorFromName(nombre) {
-    let hash = 0;
-
-    for (let i = 0; i < nombre.length; i++) {
-        hash = nombre.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    const colores = [
-        "#3b82f6", // azul
-        "#10b981", // verde
-        "#f59e0b", // amarillo
-        "#ef4444", // rojo
-        "#8b5cf6", // violeta
-        "#ec4899", // rosa
-        "#06b6d4", // cyan
-        "#22c55e"  // verde claro
-    ];
-
-    return colores[Math.abs(hash) % colores.length];
-}
-
 export function initChat(socket) {
+
+    // =========================
+    // ESCRIBIENDO GLOBAL
+    // =========================
+    let typingTimeout;
+
+    input.addEventListener("input", () => {
+
+        if (getModo() !== "global") return;
+
+        console.log("Enviando escribiendo_global");
+
+        socket.emit("escribiendo_global");
+
+        clearTimeout(typingTimeout);
+
+        typingTimeout = setTimeout(() => {
+            socket.emit("dejo_escribir_global");
+        }, 1000);
+    });
+
+
+    const subtitle = document.getElementById("chatSubtitle");
+    let typingTimer;
+
+    socket.on("escribiendo_global", (data) => {
+
+        if (getModo() !== "global") return;
+
+        console.log("Alguien escribe:", data.nombre);
+
+        subtitle.textContent = `${data.nombre} está escribiendo...`;
+
+        clearTimeout(typingTimer);
+
+        typingTimer = setTimeout(() => {
+            subtitle.textContent = "Todos los usuarios";
+        }, 1500);
+    });
+
+    socket.on("dejo_escribir_global", () => {
+
+        if (getModo() !== "global") return;
+
+        subtitle.textContent = "Todos los usuarios";
+    });
+
 
     // =========================
     // RECIBIR MENSAJES GLOBAL
@@ -38,6 +79,8 @@ export function initChat(socket) {
     socket.on("chat", (data) => {
 
         if (getModo() !== "global") return;
+
+        data.hora = obtenerHora();
 
         renderMensaje(data);
     });
@@ -49,10 +92,9 @@ export function initChat(socket) {
 
         e.preventDefault();
 
-        // solo chat global
         if (getModo() !== "global") return;
 
-        const user = getUser(); // 🔥 LOGIN REAL
+        const user = getUser();
 
         if (!user) {
             alert("Debes iniciar sesión");
@@ -60,12 +102,9 @@ export function initChat(socket) {
         }
 
         const mensaje = input.value.trim();
-
         if (!mensaje) return;
 
-        socket.emit("chat", {
-            mensaje
-        });
+        socket.emit("chat", { mensaje });
 
         input.value = "";
     });
@@ -78,52 +117,86 @@ export function initChat(socket) {
 export function renderMensaje(data) {
 
     const user = getUser();
-    const esMio = data.nombre === user?.nickname;
+    const nombre = data.nombre;
+    const esMio = nombre === user?.nickname;
 
-    let wrap = document.createElement("div");
+    const esMismoUsuario = nombre === ultimoRemitenteGlobal;
 
-    wrap.classList.add(
-        "mensaje-wrapper",
-        esMio ? "mensaje-wrapper-mio" : "mensaje-wrapper-otro"
-    );
+    let wrap;
 
-    // 🔥 CONTENEDOR FLEX
-    let mensajeBox = document.createElement("div");
-    mensajeBox.classList.add("mensaje");
-    mensajeBox.dataset.letter = data.nombre ? data.nombre[0].toUpperCase() : "U";
+    // =========================
+    // AGRUPAR
+    // =========================
+    if (esMismoUsuario && ultimoGrupoGlobal) {
 
-    // 🔥 AVATAR (solo otros usuarios)
-    if (!esMio) {
-        let avatar = document.createElement("div");
-        avatar.classList.add("mensaje-avatar");
-        avatar.style.background = getColorFromName(data.nombre); // 🔥 COLOR ÚNICO
-        mensajeBox.appendChild(avatar);
+        wrap = ultimoGrupoGlobal;
+
+    } else {
+
+        wrap = document.createElement("div");
+
+        wrap.classList.add(
+            "mensaje-wrapper",
+            esMio ? "mensaje-wrapper-mio" : "mensaje-wrapper-otro"
+        );
+
+        const mensajeBox = document.createElement("div");
+        mensajeBox.classList.add("mensaje");
+        mensajeBox.dataset.letter = nombre ? nombre[0].toUpperCase() : "U";
+
+        // AVATAR
+        if (!esMio) {
+            const avatar = document.createElement("div");
+            avatar.classList.add("mensaje-avatar");
+            avatar.style.background = getColorFromName(nombre);
+            mensajeBox.appendChild(avatar);
+        }
+
+        // CONTENIDO
+        const contenido = document.createElement("div");
+        contenido.classList.add("mensaje-contenido");
+
+        // NOMBRE (solo una vez)
+        const autor = document.createElement("div");
+        autor.classList.add("mensaje-autor");
+        autor.textContent = nombre;
+
+        contenido.appendChild(autor);
+
+        mensajeBox.appendChild(contenido);
+        wrap.appendChild(mensajeBox);
+
+        lista.appendChild(wrap);
+
+        // guardar grupo
+        ultimoGrupoGlobal = wrap;
+        ultimoRemitenteGlobal = nombre;
     }
 
-    // 🔥 CONTENIDO
-    let contenido = document.createElement("div");
-    contenido.classList.add("mensaje-contenido");
+    // =========================
+    // AGREGAR MENSAJE
+    // =========================
+    const contenido = wrap.querySelector(".mensaje-contenido");
 
-    let autor = document.createElement("div");
-    autor.classList.add("mensaje-autor");
-    autor.textContent = data.nombre;
+    const burbuja = crearBurbuja({
+        mensaje: data.mensaje,
+        propio: esMio
+    });
 
-    let burbuja = document.createElement("div");
-    burbuja.classList.add(
-        "mensaje-item",
-        esMio ? "mensaje-mio" : "mensaje-otro"
-    );
-
-    burbuja.textContent = data.mensaje;
-
-    contenido.appendChild(autor);
     contenido.appendChild(burbuja);
 
-    mensajeBox.appendChild(contenido);
+    // HORA
+    contenido.appendChild(crearHora(data.hora));
 
-    wrap.appendChild(mensajeBox);
-
-    lista.appendChild(wrap);
-
-    lista.scrollTop = lista.scrollHeight;
+    requestAnimationFrame(() => {
+        contenedorScroll.scrollTo({
+            top: contenedorScroll.scrollHeight,
+            behavior: "smooth"
+        });
+    });
 }
+
+console.log(
+    contenedorScroll.scrollHeight,
+    contenedorScroll.clientHeight
+);

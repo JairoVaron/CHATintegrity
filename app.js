@@ -131,7 +131,7 @@ io.on("connection", (socket) => {
 
         const toUser = usuarios.find(u => u.socketId === data.toSocketId);
         if (!toUser) {
-            console.log("❌ Usuario destino no encontrado");
+            console.log("Usuario destino no encontrado");
             return;
         }
 
@@ -145,19 +145,19 @@ io.on("connection", (socket) => {
             mensaje: data.mensaje
         };
 
-        // 👉 enviar al receptor
+        // enviar al receptor
         io.to(toUser.socketId).emit("mensaje_privado", {
             ...payload,
             propio: false
         });
 
-        // 👉 enviar al emisor
+        // enviar al emisor
         socket.emit("mensaje_privado", {
             ...payload,
             propio: true
         });
 
-        // 💾 guardar en DB (SIN CRASH)
+        // guardar en DB (SIN CRASH)
         try {
             await db.execute(
                 "INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)",
@@ -177,6 +177,61 @@ io.on("connection", (socket) => {
         usuarios = usuarios.filter(u => u.socketId !== socket.id);
 
         io.emit("lista_usuarios", usuarios);
+    });
+
+
+    // =========================
+    // MENSAJES LEIDOS
+    // =========================
+    socket.on("mensajes_leidos", ({ from, to }) => {
+
+        // enviar al usuario original (el que mandó mensajes)
+        io.to(to).emit("mensajes_leidos", {
+            from
+        });
+    });
+
+
+    // =========================
+    // ESCRIBIENDO PRIVADO
+    // =========================
+    socket.on("escribiendo_privado", ({ to }) => {
+
+        const user = usuarios.find(u => u.socketId === socket.id);
+        if (!user) return;
+
+        socket.to(to).emit("escribiendo_privado", {
+            from: {
+                socketId: socket.id,
+                nombre: user.nombre
+            }
+        });
+    });
+
+    socket.on("dejo_escribir_privado", ({ to }) => {
+        socket.to(to).emit("dejo_escribir_privado", {
+            from: socket.id
+        });
+    });
+
+
+    // =========================
+    // ESCRIBIENDO GLOBAL
+    // =========================
+    socket.on("escribiendo_global", () => {
+
+        const user = usuarios.find(u => u.socketId === socket.id);
+        if (!user) return;
+
+        console.log("Escribiendo global:", user.nombre);
+
+        socket.broadcast.emit("escribiendo_global", {
+            nombre: user.nombre
+        });
+    });
+
+    socket.on("dejo_escribir_global", () => {
+        socket.broadcast.emit("dejo_escribir_global");
     });
 });
 

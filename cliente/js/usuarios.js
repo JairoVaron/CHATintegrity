@@ -19,7 +19,7 @@ export function initUsuario(socket) {
 
         const usuarioActual = document.getElementById("usuarioActual");
 
-        // ⚠️ Este sistema ahora usa LOGIN, así que solo mostramos nombre
+        // Este sistema ahora usa LOGIN, así que solo mostramos nombre
         socketGlobal.on("connect", () => {
             console.log("Socket conectado");
         });
@@ -48,7 +48,7 @@ export function getUsuariosGlobal() {
 
 
 // =========================
-// RENDER USERS (🔥 ARREGLADO)
+// RENDER USERS
 // =========================
 export function renderUsuarios(usuarios) {
 
@@ -65,17 +65,17 @@ export function renderUsuarios(usuarios) {
 
         const li = document.createElement("li");
 
-        // 🔥 CLASE NECESARIA PARA EL CSS
+        // CLASE NECESARIA PARA EL CSS
         li.classList.add("user-item");
 
-        // 🔥 DATA PARA EL AVATAR (LA SOLUCIÓN REAL)
+        // DATA PARA EL AVATAR (LA SOLUCIÓN REAL)
         li.dataset.letter = u.nombre ? u.nombre[0].toUpperCase() : "U";
 
         // IDs (los tuyos)
         li.dataset.id = u.socketId;
         li.dataset.userid = u.userId;
 
-        // 🔥 ESTRUCTURA CORRECTA
+        // ESTRUCTURA CORRECTA
         li.innerHTML = `
             <span class="user-item-name">${u.nombre}</span>
         `;

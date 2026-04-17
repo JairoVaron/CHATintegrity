@@ -1,4 +1,3 @@
-// emojis.js
 const btnEmoji = document.getElementById("btnEmoji");
 const panelEmoji = document.getElementById("panelEmoji");
 const input = document.getElementById("inputMensaje");
