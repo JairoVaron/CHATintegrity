@@ -61,11 +61,6 @@ export function initAuth(socket) {
     // ======================
     btnLogin.addEventListener("click", async () => {
 
-        if (!email.value || !password.value) {
-            alert("Completa el login");
-            return;
-        }
-
         try {
             const res = await fetch("/login", {
                 method: "POST",
@@ -76,23 +71,28 @@ export function initAuth(socket) {
                 })
             });
 
-            const data = await res.json();
+            // PROTECCIÓN CONTRA 502 / HTML
+            const text = await res.text();
 
-            if (!data.ok) {
-                alert("Credenciales incorrectas");
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("Respuesta no JSON:", text);
+                alert("Error servidor (no JSON)");
                 return;
             }
 
-            // GUARDAR USUARIO GLOBAL
-            currentUser = data.user;
+            if (!data.ok) {
+                alert(data.error || "Credenciales incorrectas");
+                return;
+            }
 
-            // SOCKET AUTH
+            currentUser = data.user;
             socket.emit("auth", currentUser);
 
-            // ocultar login
             loginView.style.display = "none";
 
-            // UI
             if (usuarioActual) {
                 usuarioActual.textContent = currentUser.nickname;
             }
@@ -101,7 +101,7 @@ export function initAuth(socket) {
 
         } catch (err) {
             console.error("Error login:", err);
-            alert("Error de servidor");
+            alert("Error de conexión con el servidor");
         }
     });
 }
