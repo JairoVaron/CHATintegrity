@@ -34,7 +34,7 @@ app.post("/register", async (req, res) => {
         const hash = await bcrypt.hash(password, 10);
 
         await db.execute(
-            "INSERT INTO users (email, password, nickname) VALUES (?, ?, ?)",
+            "INSERT INTO users (email, password, nickname) VALUES ($1, $2, $3)",
             [email, hash, nickname || "Usuario"]
         );
 
@@ -54,7 +54,7 @@ app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     const [rows] = await db.execute(
-        "SELECT * FROM users WHERE email = ?",
+        "SELECT * FROM users WHERE email = $1",
         [email]
     );
 
@@ -162,7 +162,7 @@ io.on("connection", (socket) => {
         // guardar en DB (SIN CRASH)
         try {
             await db.execute(
-                "INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)",
+                "INSERT INTO messages (sender_id, receiver_id, message) VALUES ($1, $2, $3)",
                 [fromUser.userId, toUser.userId, data.mensaje]
             );
         } catch (err) {
