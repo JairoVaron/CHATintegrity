@@ -154,6 +154,10 @@
   color:var(--text-primary);
 }
 
+#btnLogout svg{
+  flex-shrink:0;
+}
+
 /* ── Mensajes contenedor ── */
 .mensajes-container{
   flex:1;
