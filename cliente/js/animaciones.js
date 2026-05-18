@@ -26,7 +26,7 @@ function animarMensajePropio(elemento) {
 
 
 // ==========================
-// ENTRADA LATERAL (más limpia)
+// ENTRADA LATERAL 
 // ==========================
 function animarEntradaLateral(elemento, esMio) {
     elemento.style.opacity = "0";
@@ -140,10 +140,13 @@ function cerrarPolitica() {
   login.classList.remove("hidden");
 }
 
-// 👇 ESTO DEBE IR DESPUÉS DE LAS FUNCIONES
+// Cerrar sesión 
+document.getElementById('btnLogout')?.addEventListener('click', () => {
+  location.reload();
+});
+
 window.abrirPolitica = abrirPolitica;
 window.cerrarPolitica = cerrarPolitica;
-
 
 // ==========================
 // EXPORT (si usas módulos)
